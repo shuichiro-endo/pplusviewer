@@ -20,16 +20,25 @@ Do not open a file over 1MB.<br>
 
 ## Installation
 
-This tool can run on an environment that is installed Java8.
+This tool (.jar file) can run in an environment where Java8 is installed.
 
 - Java version 1.8.0_60(JRE)
     - <font style="color:blue">Note: This tool uses JavaFX 8.</font>
 
+You can build this source code using OpenJDK 26 and OpenJFX 26.
+```
+cd src\UTF8_LF
+
+javac -Xlint:deprecation --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls,javafx.fxml myproject\application\winpe32\Main.java myproject\application\winpe32\ApplicationController.java myproject\application\winpe32\BinTableRecord.java myproject\application\winpe32\Section.java myproject\application\winpe32\WinPE32TreeTableRecord.java
+
+# run
+java --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls,javafx.fxml myproject.application.winpe32.Main
+```
 
 ## Example
 1. Run
     ```
-    java -Xmx4g -jar "P+Viewer2.0.0.jar"
+    java -Xmx4g -jar "P+Viewer3.0.0.jar"
     ```
 1. Open File([File]-[FileOpen])
 
