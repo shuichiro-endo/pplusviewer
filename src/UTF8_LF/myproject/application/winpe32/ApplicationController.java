@@ -7303,11 +7303,10 @@ public class ApplicationController implements Initializable {
 
 
 			//Ordinal
-			int ordinal				= 0;
+			int ordinal				= ordinalBase;
 			int ordinalRecordIntex	= 0;
 
 			name		= "Ordinal";
-			ordinal		= addressRecordIndex + ordinalBase;
 			analysis	= "";
 			notes		= EXPORT_ADDRESS_TABLEOrdinalNotes;
 
@@ -7322,8 +7321,9 @@ public class ApplicationController implements Initializable {
 
 				if(addressRecordIndex==ov){
 
-					analysis	= "AddressOfFunctionIndex="+OrdinalRecord.getName()+"="+addressRecordIndex+"\n";
-					analysis	+= "Ordinal=AddressOfFunctionIndex+OrdinalBase="+ordinal;
+					ordinal		+= ov;
+					analysis	= "AddressOfFunctionIndex="+OrdinalRecord.getName()+"="+ov+"\n";
+					analysis	+= "Ordinal=OrdinalBase+"+OrdinalRecord.getName()+"="+ordinal;
 
 					WinPE32TreeTableRecord Ordinal					= new WinPE32TreeTableRecord(name, "", "", "", "", Integer.toString(ordinal), analysis, notes);
 					TreeItem<WinPE32TreeTableRecord> OrdinalItem	= new TreeItem<>(Ordinal);

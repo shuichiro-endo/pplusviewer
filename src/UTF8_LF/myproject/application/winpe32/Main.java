@@ -27,7 +27,7 @@ public class Main extends Application {
 			ApplicationController ac = new ApplicationController(primaryStage);
 			ldr.setController(ac);
 			Parent root = ldr.load();
-			primaryStage.setTitle("P+Viewer ver.3.0.1");
+			primaryStage.setTitle("P+Viewer ver.3.0.2");
 			Scene scene = new Scene(root);
 			scene.getStylesheets().add(getClass().getResource("application_winpe32.css").toExternalForm());
 			primaryStage.setScene(scene);
