@@ -6774,7 +6774,7 @@ public class ApplicationController implements Initializable {
 					IMAGE_EXPORT_DIRECTORYItem.getChildren().add(NameItem);
 
 					//Name作成
-					makeImageExportDirectoryName(NameItem, value, String.format("%08X", v).toUpperCase());
+					makeImageExportDirectoryName(NameItem, IMAGE_EXPORT_DIRECTORY, value, String.format("%08X", v).toUpperCase());
 
 
 					//0x10	DWORD	Base
@@ -6946,6 +6946,7 @@ public class ApplicationController implements Initializable {
 	}
 
 	private void makeImageExportDirectoryName(TreeItem<WinPE32TreeTableRecord> item,
+											  WinPE32TreeTableRecord record,
 											  String strRVAAddr,
 											  String strRawAddr){
 		//開始アドレス取得
@@ -6999,6 +7000,8 @@ public class ApplicationController implements Initializable {
 		TreeItem<WinPE32TreeTableRecord> NameItem	= new TreeItem<>(Name);
 //		NameItem.setExpanded(true);
 		item.getChildren().add(NameItem);
+
+		record.setName(record.getName()+":"+analysis);
 
 	}
 
@@ -7163,7 +7166,7 @@ public class ApplicationController implements Initializable {
 			EXPORT_NAME_POINTER_TABLEItem.getChildren().add(AddressOfNamesItem);
 
 			//Name作成
-			makeImageExportDirectoryName(AddressOfNamesItem, value, String.format("%08X", v).toUpperCase());
+			makeImageExportDirectoryName(AddressOfNamesItem, AddressOfNames, value, String.format("%08X", v).toUpperCase());
 
 		}
 
@@ -7352,11 +7355,14 @@ public class ApplicationController implements Initializable {
 			analysis	= "";
 			notes		= EXPORT_ADDRESS_TABLEExportSymbolNameNotes;
 
+			String symbolname	= "";
+
 			if(ordinalRecordIntex!=-1){
 				TreeItem<WinPE32TreeTableRecord> AddressOfNamesItem		= EXPORT_NAME_POINTER_TABLEItem_list.get(ordinalRecordIntex);
 				WinPE32TreeTableRecord AddressOfNamesRecord				= AddressOfNamesItem.getValue();
 
 				analysis	= AddressOfNamesRecord.getName();
+				symbolname	= AddressOfNamesItem.getChildren().get(0).getValue().getAnalysis();
 
 				WinPE32TreeTableRecord ExportSymbolName					= new WinPE32TreeTableRecord(name, AddressOfNamesRecord.getRaw(), AddressOfNamesRecord.getRVA(), AddressOfNamesRecord.getOffset(), AddressOfNamesRecord.getSize(), AddressOfNamesRecord.getValue(), analysis, notes);
 				TreeItem<WinPE32TreeTableRecord> ExportSymbolNameItem	= new TreeItem<>(ExportSymbolName);
@@ -7392,6 +7398,9 @@ public class ApplicationController implements Initializable {
 //			ForwardedToItem.setExpanded(true);
 			AddressOfFunctionItem.getChildren().add(ForwardedToItem);
 
+			if(ordinal>=ordinalBase){
+				AddressOfFunctionRecord.setName(AddressOfFunctionRecord.getName()+":"+"Ordinal="+ordinal+", "+symbolname);
+			}
 
 			addressRecordIndex++;
 
@@ -7584,7 +7593,7 @@ public class ApplicationController implements Initializable {
 
 						//DLL_NAME作成
 						if(!value.equals("00000000")){
-							makeImportDllName(NameItem, value, String.format("%08X", v).toUpperCase());
+							makeImportDllName(NameItem, IMAGE_IMPORT_DESCRIPTOR, value, String.format("%08X", v).toUpperCase());
 						}
 
 
@@ -7697,6 +7706,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(v & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= IMPORT_NAME_TABLEOrdinalNotes;
+					IMPORT_NAME_TABLE.setName(IMPORT_NAME_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(v != 0){
@@ -7714,7 +7724,7 @@ public class ApplicationController implements Initializable {
 
 				//IMAGE_IMPORT_BY_NAME作成
 				if((v & 0x80000000) == 0 && !value.equals("00000000")) { //AddressOfDataなら
-					makeImageImportByName(recordItem, value, String.format("%08X", v).toUpperCase());
+					makeImageImportByName(recordItem, IMPORT_NAME_TABLE, value, String.format("%08X", v).toUpperCase());
 				}
 
 				count++;
@@ -7765,6 +7775,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(vl & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= IMPORT_NAME_TABLEOrdinalNotes;
+					IMPORT_NAME_TABLE.setName(IMPORT_NAME_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(vl != 0){
@@ -7781,8 +7792,8 @@ public class ApplicationController implements Initializable {
 				IMPORT_NAME_TABLEItem.getChildren().add(recordItem);
 
 				//IMAGE_IMPORT_BY_NAME作成
-				if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //Ordinalなら
-					makeImageImportByName(recordItem, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
+				if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //AddressOfDataなら
+					makeImageImportByName(recordItem, IMPORT_NAME_TABLE, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
 				}
 
 				count++;
@@ -7792,7 +7803,7 @@ public class ApplicationController implements Initializable {
 		}
 	}
 
-	private void makeImageImportByName(TreeItem<WinPE32TreeTableRecord> item, String strRVAAddr, String strRawAddr) {
+	private void makeImageImportByName(TreeItem<WinPE32TreeTableRecord> item, WinPE32TreeTableRecord record, String strRVAAddr, String strRawAddr) {
 
 		//開始アドレス取得
 		int startRawAddr		= getStringToInt(strRawAddr, false);
@@ -7894,6 +7905,8 @@ public class ApplicationController implements Initializable {
 			//IMAGE_IMPORT_BY_NAMEサイズ更新
 			size	+= WORD;
 			IMAGE_IMPORT_BY_NAME.setSize(String.format("%08X", size).toUpperCase());
+
+			record.setName(record.getName()+":"+analysis);
 
 		}else if(magicNumber.equals("020B")){	//PE32+
 			//IMAGE_IMPORT_BY_NAME
@@ -7972,10 +7985,11 @@ public class ApplicationController implements Initializable {
 			size	+= WORD;
 			IMAGE_IMPORT_BY_NAME.setSize(String.format("%08X", size).toUpperCase());
 
+			record.setName(record.getName()+":"+analysis);
 		}
 	}
 
-	private void makeImportDllName(TreeItem<WinPE32TreeTableRecord> item, String strRVAAddr, String strRawAddr) {
+	private void makeImportDllName(TreeItem<WinPE32TreeTableRecord> item, WinPE32TreeTableRecord record, String strRVAAddr, String strRawAddr) {
 
 		//開始アドレス取得
 		int startRawAddr		= getStringToInt(strRawAddr, false);
@@ -8028,6 +8042,8 @@ public class ApplicationController implements Initializable {
 		TreeItem<WinPE32TreeTableRecord> DllNameItem	= new TreeItem<>(DllName);
 //		DllNameItem.setExpanded(true);
 		item.getChildren().add(DllNameItem);
+
+		record.setName(record.getName()+":"+analysis);
 
 	}
 
@@ -8102,6 +8118,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(v & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= IMPORT_ADDRESS_TABLEOrdinalNotes;
+					IMPORT_ADDRESS_TABLE.setName(IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(v != 0){
@@ -8126,7 +8143,7 @@ public class ApplicationController implements Initializable {
 					int maxAddress	= lastLineno*16+lastByteNum;
 
 					if(v<maxAddress){
-						makeImageImportByName(recordItem, value, String.format("%08X", v).toUpperCase());
+						makeImageImportByName(recordItem, IMPORT_ADDRESS_TABLE, value, String.format("%08X", v).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}
@@ -8180,6 +8197,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(vl & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= IMPORT_ADDRESS_TABLEOrdinalNotes;
+					IMPORT_ADDRESS_TABLE.setName(IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(vl != 0){
@@ -8196,14 +8214,14 @@ public class ApplicationController implements Initializable {
 				IMPORT_ADDRESS_TABLEItem.getChildren().add(recordItem);
 
 				//IMAGE_IMPORT_BY_NAME作成
-				if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //Ordinalなら
+				if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //AddressOfDataなら
 					//アドレスはファイル内を示しているかチェック
 					int lastLineno	= binTableRecordList.size()-1;
 					int lastByteNum	= binTableRecordList.get(lastLineno).getBlankColumnStartBinNumber();
 					long maxAddress	= lastLineno*16+lastByteNum;
 
 					if(vl<maxAddress){
-						makeImageImportByName(recordItem, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
+						makeImageImportByName(recordItem, IMPORT_ADDRESS_TABLE, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}
@@ -11568,6 +11586,7 @@ public class ApplicationController implements Initializable {
 								symbol	= (short)(v & 0xFFFF);
 								analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 								notes		= IMPORT_ADDRESS_TABLEOrdinalNotes;
+								IMPORT_ADDRESS_TABLE.setName(IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 							}else {	//AddressOfDataなら
 								name	= "AddressOfData";
 								if(v != 0){
@@ -11591,7 +11610,7 @@ public class ApplicationController implements Initializable {
 								int maxAddress	= lastLineno*16+lastByteNum;
 
 								if(v<maxAddress){
-									makeImageImportByName(recordItem, value, String.format("%08X", v).toUpperCase());
+									makeImageImportByName(recordItem, IMPORT_ADDRESS_TABLE, value, String.format("%08X", v).toUpperCase());
 								}else{
 									record.setCheck("*");
 								}
@@ -11643,6 +11662,7 @@ public class ApplicationController implements Initializable {
 								symbol	= (short)(vl & 0xFFFF);
 								analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 								notes		= IMPORT_ADDRESS_TABLEOrdinalNotes;
+								IMPORT_ADDRESS_TABLE.setName(IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 							}else {	//AddressOfDataなら
 								name	= "AddressOfData";
 								if(vl != 0){
@@ -11659,14 +11679,14 @@ public class ApplicationController implements Initializable {
 							IMPORT_ADDRESS_TABLEItem.getChildren().add(recordItem);
 
 							//IMAGE_IMPORT_BY_NAME作成
-							if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //Ordinalなら
+							if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //AddressOfDataなら
 								//アドレスはファイル内を示しているかチェック
 								int lastLineno	= binTableRecordList.size()-1;
 								int lastByteNum	= binTableRecordList.get(lastLineno).getBlankColumnStartBinNumber();
 								long maxAddress	= lastLineno*16+lastByteNum;
 
 								if(vl<maxAddress){
-									makeImageImportByName(recordItem, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
+									makeImageImportByName(recordItem, IMPORT_ADDRESS_TABLE, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
 								}else{
 									record.setCheck("*");
 								}
@@ -12287,6 +12307,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(v & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= DELAY_IMPORT_NAME_TABLEOrdinalNotes;
+					DELAY_IMPORT_NAME_TABLE.setName(DELAY_IMPORT_NAME_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(v != 0){
@@ -12310,7 +12331,7 @@ public class ApplicationController implements Initializable {
 					int maxAddress	= lastLineno*16+lastByteNum;
 
 					if(v<maxAddress){
-						makeImageImportByName(recordItem, value, String.format("%08X", v).toUpperCase());
+						makeImageImportByName(recordItem, DELAY_IMPORT_NAME_TABLE, value, String.format("%08X", v).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}
@@ -12361,6 +12382,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(vl & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= DELAY_IMPORT_NAME_TABLEOrdinalNotes;
+					DELAY_IMPORT_NAME_TABLE.setName(DELAY_IMPORT_NAME_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(vl != 0){
@@ -12377,14 +12399,14 @@ public class ApplicationController implements Initializable {
 				DELAY_IMPORT_NAME_TABLEItem.getChildren().add(recordItem);
 
 				//IMAGE_IMPORT_BY_NAME作成
-				if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //Ordinalなら
+				if((vl & Long.MIN_VALUE) == 0 && !value.equals("0000000000000000")) { //AddressOfDataなら
 					//アドレスはファイル内を示しているかチェック
 					int lastLineno	= binTableRecordList.size()-1;
 					int lastByteNum	= binTableRecordList.get(lastLineno).getBlankColumnStartBinNumber();
 					long maxAddress	= lastLineno*16+lastByteNum;
 
 					if(vl<maxAddress){
-						makeImageImportByName(recordItem, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
+						makeImageImportByName(recordItem, DELAY_IMPORT_NAME_TABLE, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}
@@ -12466,6 +12488,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(v & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= DELAY_BOUND_IMPORT_ADDRESS_TABLEOrdinalNotes;
+					DELAY_BOUND_IMPORT_ADDRESS_TABLE.setName(DELAY_BOUND_IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(v != 0){
@@ -12489,7 +12512,7 @@ public class ApplicationController implements Initializable {
 					int maxAddress	= lastLineno*16+lastByteNum;
 
 					if(v<maxAddress){
-						makeImageImportByName(recordItem, value, String.format("%08X", v).toUpperCase());
+						makeImageImportByName(recordItem, DELAY_BOUND_IMPORT_ADDRESS_TABLE, value, String.format("%08X", v).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}
@@ -12541,6 +12564,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(vl & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= DELAY_BOUND_IMPORT_ADDRESS_TABLEOrdinalNotes;
+					DELAY_BOUND_IMPORT_ADDRESS_TABLE.setName(DELAY_BOUND_IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(vl != 0){
@@ -12564,7 +12588,7 @@ public class ApplicationController implements Initializable {
 					long maxAddress	= lastLineno*16+lastByteNum;
 
 					if(vl<maxAddress){
-						makeImageImportByName(recordItem, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
+						makeImageImportByName(recordItem, DELAY_BOUND_IMPORT_ADDRESS_TABLE, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}
@@ -12647,6 +12671,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(v & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= DELAY_UNLOAD_IMPORT_ADDRESS_TABLEOrdinalNotes;
+					DELAY_UNLOAD_IMPORT_ADDRESS_TABLE.setName(DELAY_UNLOAD_IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(v != 0){
@@ -12670,7 +12695,7 @@ public class ApplicationController implements Initializable {
 					int maxAddress	= lastLineno*16+lastByteNum;
 
 					if(v<maxAddress){
-						makeImageImportByName(recordItem, value, String.format("%08X", v).toUpperCase());
+						makeImageImportByName(recordItem, DELAY_UNLOAD_IMPORT_ADDRESS_TABLE, value, String.format("%08X", v).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}
@@ -12722,6 +12747,7 @@ public class ApplicationController implements Initializable {
 					symbol	= (short)(vl & 0xFFFF);
 					analysis	= "Ordinal=" + String.format("%04X", symbol).toUpperCase();
 					notes		= DELAY_UNLOAD_IMPORT_ADDRESS_TABLEOrdinalNotes;
+					DELAY_UNLOAD_IMPORT_ADDRESS_TABLE.setName(DELAY_UNLOAD_IMPORT_ADDRESS_TABLE.getName()+":"+analysis);
 				}else {	//AddressOfDataなら
 					name	= "AddressOfData";
 					if(vl != 0){
@@ -12745,7 +12771,7 @@ public class ApplicationController implements Initializable {
 					long maxAddress	= lastLineno*16+lastByteNum;
 
 					if(vl<maxAddress){
-						makeImageImportByName(recordItem, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
+						makeImageImportByName(recordItem, DELAY_UNLOAD_IMPORT_ADDRESS_TABLE, value.substring(8, 16), String.format("%08X", vl).toUpperCase());
 					}else{
 						record.setCheck("*");
 					}

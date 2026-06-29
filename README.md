@@ -38,7 +38,7 @@ java --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls
 ## Example
 1. Run
     ```
-    java -Xmx4g -jar "P+Viewer3.0.0.jar"
+    java -Xmx4g -jar "P+Viewer3.0.1.jar"
     ```
 1. Open File([File]-[FileOpen])
 
